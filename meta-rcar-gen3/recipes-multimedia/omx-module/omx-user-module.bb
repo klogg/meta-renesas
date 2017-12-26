@@ -142,7 +142,7 @@ OMX_AUDIO_SRC_LIST = " \
     ${OMX_AACLC_ENC_SRC} \
 "
 
-S = "${WORKDIR}/omx/"
+S = "${WORKDIR}/omx"
 
 # Create ${S} directory
 do_unpack_prepend() {
@@ -157,8 +157,8 @@ setup_build_tree() {
     for omxmc in ${OMX_COMMON_SRC} ${OMX_VIDEO_DEC_COMMON_SRC} ${OMX_VIDEO_ENC_COMMON_SRC}
     do
         tar xf ${WORKDIR}/${omxmc}.tar.bz2 -C ${WORKDIR}
-        tar xf ${WORKDIR}/${omxmc}.tar.bz2 ${omxmc}/src --strip=2 -C ${S}
-        tar xf ${WORKDIR}/${omxmc}.tar.bz2 ${omxmc}/include --strip=1 -C ${S}
+        tar xf ${WORKDIR}/${omxmc}.tar.bz2 -C ${S} --strip-components=2 ${omxmc}/src
+        tar xf ${WORKDIR}/${omxmc}.tar.bz2 -C ${S} --strip-components=1 ${omxmc}/include
     done
 }
 
@@ -168,8 +168,8 @@ EXTRA_OECONF = "OMXR_DEFAULT_CONFIG_FILE_NAME=${sysconfdir}/omxr/omxr_config_bas
 
 do_configure() {
     export uvcsdrv_dir="${INCSHARED}"
-    chmod u+x autogen.sh
-    ./autogen.sh
+    chmod u+x ${S}/autogen.sh
+    ${S}/autogen.sh
     oe_runconf
 }
 

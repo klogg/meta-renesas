@@ -73,3 +73,5 @@ FILES_${PN}-armtz = " \
 RPROVIDES_${PN} += "optee-linuxdriver"
 RPROVIDES_${PN} += "kernel-module-optee"
 RPROVIDES_${PN} += "kernel-module-optee-armtz"
+
+KERNEL_MODULE_AUTOLOAD = "optee optee_armtz"

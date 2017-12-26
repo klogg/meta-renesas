@@ -50,3 +50,5 @@ FILES_${PN} = " \
 "
 
 RPROVIDES_${PN} += "kernel-module-mmngrbuf"
+
+KERNEL_MODULE_AUTOLOAD = "mmngrbuf"

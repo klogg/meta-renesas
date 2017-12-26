@@ -1,0 +1,44 @@
+diff --git a/configure.ac b/configure.ac
+index 30e26b873..01c97e673 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -891,7 +891,6 @@ if test "x$HAVE_GL" = "xyes" -a "x$HAVE_GLES2" = "xyes"; then
+ # else
+ #  if $GLES3_H_DEFINE
+ #   include <GLES3/gl3.h>
+-#   include <GLES3/gl3ext.h>
+ #  else
+ #   include <GLES2/gl2.h>
+ #   include <GLES2/gl2ext.h>
+@@ -1371,7 +1370,6 @@ if test "x$USE_GLES2" = "xyes"; then
+ # else
+ #  if $GST_GL_HAVE_GLES3
+ #   include <GLES3/gl3.h>
+-#   include <GLES3/gl3ext.h>
+ #  else
+ #   include <GLES2/gl2.h>
+ #   include <GLES2/gl2ext.h>
+diff --git a/gst-libs/gst/gl/gstglapi.h b/gst-libs/gst/gl/gstglapi.h
+index 3ce1e03dc..f5d815a87 100644
+--- a/gst-libs/gst/gl/gstglapi.h
++++ b/gst-libs/gst/gl/gstglapi.h
+@@ -38,7 +38,6 @@
+ # else
+ #  if GST_GL_HAVE_GLES3
+ #   include <GLES3/gl3.h>
+-#   include <GLES3/gl3ext.h>
+ #  else
+ #   include <GLES2/gl2.h>
+ #   include <GLES2/gl2ext.h>
+diff --git a/gst-libs/gst/gl/meson.build b/gst-libs/gst/gl/meson.build
+index 12ef4daaf..bb08c0c4e 100644
+--- a/gst-libs/gst/gl/meson.build
++++ b/gst-libs/gst/gl/meson.build
+@@ -330,7 +330,6 @@ if need_api_gles2 != 'no'
+   if gles3_h
+     gles_includes += '''
+ # include <GLES3/gl3.h>
+-# include <GLES3/gl3ext.h>'''
+   else
+     gles_includes += '''
+ # include <GLES2/gl2.h>

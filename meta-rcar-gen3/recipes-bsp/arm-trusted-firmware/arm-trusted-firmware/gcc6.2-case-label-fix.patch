@@ -1,0 +1,267 @@
+From cd172f31ea69f9d448412276e7464dd62c64ed51 Mon Sep 17 00:00:00 2001
+From: David Cunado <david.cunado@arm.com>
+Date: Thu, 19 Jan 2017 10:26:16 +0000
+Subject: [PATCH] Resolve build errors flagged by GCC 6.2
+
+With GCC 6.2 compiler, more C undefined behaviour is being flagged as
+warnings, which result in build errors in ARM TF build.
+
+The specific issue that this patch resolves is the use of (1 << 31),
+which is predominantly used in case statements, where 1 is represented
+as a signed int. When shifted to msb the behaviour is undefined.
+
+The resolution is to specify 1 as an unsigned int using a convenience
+macro ULL(). A duplicate macro MAKE_ULL() is replaced.
+
+Fixes ARM-software/tf-issues#438
+
+Change-Id: I08e3053bbcf4c022ee2be33a75bd0056da4073e1
+Signed-off-by: David Cunado <david.cunado@arm.com>
+---
+ include/bl32/payloads/tlk.h                   | 18 ++++++++++--------
+ include/lib/smcc.h                            |  6 ++++--
+ include/lib/utils.h                           | 16 +++++++++++++++-
+ include/plat/arm/board/common/board_css_def.h |  4 ++--
+ include/plat/arm/common/arm_def.h             | 10 +++++-----
+ include/plat/arm/soc/common/soc_css_def.h     |  4 ++--
+ include/plat/common/common_def.h              | 22 +---------------------
+ plat/arm/board/fvp/include/platform_def.h     |  6 +++---
+ 8 files changed, 42 insertions(+), 44 deletions(-)
+
+diff --git a/include/bl32/payloads/tlk.h b/include/bl32/payloads/tlk.h
+index 6ce1eb69e..d355313ea 100644
+--- a/include/bl32/payloads/tlk.h
++++ b/include/bl32/payloads/tlk.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -31,6 +31,8 @@
+ #ifndef __TLK_H__
+ #define __TLK_H__
+ 
++#include <utils.h>
++
+ /*
+  * Generate function IDs for the Trusted OS/Apps
+  */
+@@ -51,13 +53,13 @@
+  * SMC function IDs that TLK uses to signal various forms of completions
+  * to the secure payload dispatcher.
+  */
+-#define TLK_REQUEST_DONE	(0x32000001 | (1 << 31))
+-#define TLK_PREEMPTED		(0x32000002 | (1 << 31))
+-#define TLK_ENTRY_DONE		(0x32000003 | (1 << 31))
+-#define TLK_VA_TRANSLATE	(0x32000004 | (1 << 31))
+-#define TLK_SUSPEND_DONE	(0x32000005 | (1 << 31))
+-#define TLK_RESUME_DONE		(0x32000006 | (1 << 31))
+-#define TLK_SYSTEM_OFF_DONE	(0x32000007 | (1 << 31))
++#define TLK_REQUEST_DONE	(0x32000001 | (ULL(1) << 31))
++#define TLK_PREEMPTED		(0x32000002 | (ULL(1) << 31))
++#define TLK_ENTRY_DONE		(0x32000003 | (ULL(1) << 31))
++#define TLK_VA_TRANSLATE	(0x32000004 | (ULL(1) << 31))
++#define TLK_SUSPEND_DONE	(0x32000005 | (ULL(1) << 31))
++#define TLK_RESUME_DONE		(0x32000006 | (ULL(1) << 31))
++#define TLK_SYSTEM_OFF_DONE	(0x32000007 | (ULL(1) << 31))
+ 
+ /*
+  * Trusted Application specific function IDs
+diff --git a/include/lib/smcc.h b/include/lib/smcc.h
+index c415ba109..2f562c5dc 100644
+--- a/include/lib/smcc.h
++++ b/include/lib/smcc.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2016, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2016-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -31,6 +31,8 @@
+ #ifndef __SMCC_H__
+ #define __SMCC_H__
+ 
++#include <utils.h>
++
+ /*******************************************************************************
+  * Bit definitions inside the function id as per the SMC calling convention
+  ******************************************************************************/
+@@ -57,7 +59,7 @@
+ #define SMC_64				1
+ #define SMC_32				0
+ #define SMC_UNK				0xffffffff
+-#define SMC_TYPE_FAST			1
++#define SMC_TYPE_FAST			ULL(1)
+ #define SMC_TYPE_STD			0
+ #define SMC_PREEMPTED		0xfffffffe
+ /*******************************************************************************
+diff --git a/include/lib/utils.h b/include/lib/utils.h
+index f7af8f66c..b6bc9af67 100644
+--- a/include/lib/utils.h
++++ b/include/lib/utils.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2016, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2016-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -66,4 +66,18 @@
+ #define check_uptr_overflow(ptr, inc)		\
+ 	(((ptr) > UINTPTR_MAX - (inc)) ? 1 : 0)
+ 
++/*
++ * For those constants to be shared between C and other sources, apply a 'ull'
++ * suffix to the argument only in C, to avoid undefined or unintended behaviour.
++ *
++ * The GNU assembler and linker do not support the 'ull' suffix (it causes the
++ * build process to fail) therefore the suffix is omitted when used in linker
++ * scripts and assembler files.
++*/
++#if defined(__LINKER__) || defined(__ASSEMBLY__)
++# define ULL(_x)	(_x)
++#else
++# define ULL(_x)	(_x##ull)
++#endif
++
+ #endif /* __UTILS_H__ */
+diff --git a/include/plat/arm/board/common/board_css_def.h b/include/plat/arm/board/common/board_css_def.h
+index 975f1fc55..65e3d32d7 100644
+--- a/include/plat/arm/board/common/board_css_def.h
++++ b/include/plat/arm/board/common/board_css_def.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -68,7 +68,7 @@
+  * development platforms
+  */
+ 
+-#define PLAT_ARM_DRAM2_SIZE			MAKE_ULL(0x180000000)
++#define PLAT_ARM_DRAM2_SIZE			ULL(0x180000000)
+ 
+ /* UART related constants */
+ #define PLAT_ARM_BOOT_UART_BASE			SOC_CSS_UART0_BASE
+diff --git a/include/plat/arm/common/arm_def.h b/include/plat/arm/common/arm_def.h
+index 6d7bcd1e3..4d264448d 100644
+--- a/include/plat/arm/common/arm_def.h
++++ b/include/plat/arm/common/arm_def.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -89,7 +89,7 @@
+  *   - SCP TZC DRAM: If present, DRAM reserved for SCP use
+  *   - AP TZC DRAM: The remaining TZC secured DRAM reserved for AP use
+  */
+-#define ARM_TZC_DRAM1_SIZE		MAKE_ULL(0x01000000)
++#define ARM_TZC_DRAM1_SIZE		ULL(0x01000000)
+ 
+ #define ARM_SCP_TZC_DRAM1_BASE		(ARM_DRAM1_BASE +		\
+ 					 ARM_DRAM1_SIZE -		\
+@@ -113,12 +113,12 @@
+ #define ARM_NS_DRAM1_END		(ARM_NS_DRAM1_BASE +		\
+ 					 ARM_NS_DRAM1_SIZE - 1)
+ 
+-#define ARM_DRAM1_BASE			MAKE_ULL(0x80000000)
+-#define ARM_DRAM1_SIZE			MAKE_ULL(0x80000000)
++#define ARM_DRAM1_BASE			ULL(0x80000000)
++#define ARM_DRAM1_SIZE			ULL(0x80000000)
+ #define ARM_DRAM1_END			(ARM_DRAM1_BASE +		\
+ 					 ARM_DRAM1_SIZE - 1)
+ 
+-#define ARM_DRAM2_BASE			MAKE_ULL(0x880000000)
++#define ARM_DRAM2_BASE			ULL(0x880000000)
+ #define ARM_DRAM2_SIZE			PLAT_ARM_DRAM2_SIZE
+ #define ARM_DRAM2_END			(ARM_DRAM2_BASE +		\
+ 					 ARM_DRAM2_SIZE - 1)
+diff --git a/include/plat/arm/soc/common/soc_css_def.h b/include/plat/arm/soc/common/soc_css_def.h
+index f1396a6cf..316f8f908 100644
+--- a/include/plat/arm/soc/common/soc_css_def.h
++++ b/include/plat/arm/soc/common/soc_css_def.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -98,7 +98,7 @@
+  */
+ 
+ /* 2MB used for SCP DDR retraining */
+-#define PLAT_ARM_SCP_TZC_DRAM1_SIZE	MAKE_ULL(0x00200000)
++#define PLAT_ARM_SCP_TZC_DRAM1_SIZE	ULL(0x00200000)
+ 
+ 
+ #endif /* __SOC_CSS_DEF_H__ */
+diff --git a/include/plat/common/common_def.h b/include/plat/common/common_def.h
+index 65f31e7fd..05588c131 100644
+--- a/include/plat/common/common_def.h
++++ b/include/plat/common/common_def.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015-2016, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -54,26 +54,6 @@
+  */
+ #define FIRMWARE_WELCOME_STR		"Booting Trusted Firmware\n"
+ 
+-/*
+- * Some of the platform porting definitions use the 'ull' suffix in order to
+- * avoid subtle integer overflow errors due to implicit integer type promotion
+- * when working with 32-bit values.
+- *
+- * The TSP linker script includes some of these definitions to define the BL32
+- * memory map, but the GNU LD does not support the 'ull' suffix, causing the
+- * build process to fail. To solve this problem, the auxiliary macro MAKE_ULL(x)
+- * will add the 'ull' suffix only when the macro __LINKER__  is not defined
+- * (__LINKER__ is defined in the command line to preprocess the linker script).
+- * Constants in the linker script will not have the 'ull' suffix, but this is
+- * not a problem since the linker evaluates all constant expressions to 64 bit
+- * (assuming the target architecture is 64 bit).
+- */
+-#ifndef __LINKER__
+-  #define MAKE_ULL(x)			x##ull
+-#else
+-  #define MAKE_ULL(x)			x
+-#endif
+-
+ #if LOAD_IMAGE_V2
+ #define BL2_IMAGE_DESC {				\
+ 	.image_id = BL2_IMAGE_ID,			\
+diff --git a/plat/arm/board/fvp/include/platform_def.h b/plat/arm/board/fvp/include/platform_def.h
+index d0898adcc..bf5e03b08 100644
+--- a/plat/arm/board/fvp/include/platform_def.h
++++ b/plat/arm/board/fvp/include/platform_def.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2014-2016, ARM Limited and Contributors. All rights reserved.
++ * Copyright (c) 2014-2017, ARM Limited and Contributors. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are met:
+@@ -60,9 +60,9 @@
+ #define PLAT_ARM_TRUSTED_DRAM_SIZE	0x02000000	/* 32 MB */
+ 
+ /* No SCP in FVP */
+-#define PLAT_ARM_SCP_TZC_DRAM1_SIZE	MAKE_ULL(0x0)
++#define PLAT_ARM_SCP_TZC_DRAM1_SIZE	ULL(0x0)
+ 
+-#define PLAT_ARM_DRAM2_SIZE		MAKE_ULL(0x780000000)
++#define PLAT_ARM_DRAM2_SIZE		ULL(0x780000000)
+ 
+ /*
+  * Load address of BL33 for this platform port

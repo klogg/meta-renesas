@@ -11,8 +11,9 @@ require include/multimedia-control.inc
 S = "${WORKDIR}/git"
 
 BRANCH = "rcar_gen3"
-SRC_URI = "git://github.com/renesas-rcar/arm-trusted-firmware.git;branch=${BRANCH}"
-SRCREV = "b15fefa8c485cb955170cb9b4c44386f82df14a9"
+SRC_URI = "git://github.com/renesas-rcar/arm-trusted-firmware.git;branch=${BRANCH} \
+           file://gcc6.2-case-label-fix.patch"
+SRCREV = "${AUTOREV}"
 
 PV = "v1.3+renesas+git${SRCPV}"
 

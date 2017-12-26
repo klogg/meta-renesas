@@ -57,3 +57,5 @@ PACKAGES = " \
 FILES_${PN} = " \
     /lib/modules/${KERNEL_VERSION}/extra/qos.ko \
 "
+
+KERNEL_MODULE_AUTOLOAD = "qos"

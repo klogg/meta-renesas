@@ -1,9 +1,9 @@
 SUMMARY = "GStreamer VSP filter plugin"
 SECTION = "multimedia"
 LICENSE = "GPLv2+"
-DEPENDS = "gstreamer1.0 gstreamer1.0-plugins-base pkgconfig"
+DEPENDS = "gstreamer1.0 gstreamer1.0-plugins-base glib-2.0-native"
 LIC_FILES_CHKSUM = "file://COPYING.LIB;md5=4fbd65380cdd255951079008b364516c"
-inherit autotools
+inherit autotools pkgconfig
 
 PN = "gstreamer1.0-plugin-vspfilter"
 
@@ -14,11 +14,11 @@ VSPFILTER_CONF_r8a7796 = "gstvspfilter-${MACHINE}_r8a7796.conf"
 VSPFILTER_CONF_r8a77965 = "gstvspfilter-${MACHINE}_r8a77965.conf"
 
 SRC_URI = " \
-    git://github.com/renesas-rcar/gst-plugin-vspfilter.git;branch=RCAR-GEN3/1.0.0 \
+    git://github.com/renesas-rcar/gst-plugin-vspfilter.git;branch=RCAR-GEN3/1.0.0_intermediate \
     file://${VSPFILTER_CONF} \
 "
 
-SRCREV = "50eefe877d2198092ba41316456d73e02dba0def"
+SRCREV = "${AUTOREV}"
 
 S = "${WORKDIR}/git"
 

@@ -62,3 +62,5 @@ FILES_${PN} = " \
 "
 
 RPROVIDES_${PN} += "kernel-module-vspmif kernel-module-vspm-if"
+
+KERNEL_MODULE_AUTOLOAD = "vspm_if"

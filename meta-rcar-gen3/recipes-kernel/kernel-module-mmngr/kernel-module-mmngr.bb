@@ -68,3 +68,5 @@ FILES_${PN} = " \
 "
 
 RPROVIDES_${PN} += "kernel-module-mmngr"
+
+KERNEL_MODULE_AUTOLOAD = "mmngr"
